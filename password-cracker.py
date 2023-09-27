@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-from pwn import *
 import sys
+import hashlib
+from tqdm import tqdm
 
 if len(sys.argv) != 2:
     print("Invalid Arguments!")
@@ -12,14 +13,18 @@ wanted_hash = sys.argv[1]
 password_file = "rockyou.txt"
 attempts = 0
 
-with log.progress("Attempting to back: {}!\n".format(wanted_hash)) as p:
+with tqdm(total=100, desc="Attempting to crack hash") as p:
     with open(password_file, "r", encoding='latin-1') as password_list:
         for password in password_list:
             password = password.strip("\n").encode('latin-1')
-            password_hash = sha256sumhex(password)
-            p.status("[{}] {} == {}".format(attempts, password.decode('latin-1'),password))
+            password_hash = hashlib.sha256(password).hexdigest()
+            p.set_description("Attempting to crack hash - Attempt {}".format(attempts))
+            p.update(1)
             if password_hash == wanted_hash:
-                p.success("Password hash found after {} attempts! {} hashes to {}!".format(attempts, password, password_hash))
+                p.set_description("Hash cracked!")
+                p.close()
+                print("Password hash found after {} attempts! Password: {} hashes to {}!".format(attempts, password.decode('latin-1'), password_hash))
                 exit()
             attempts += 1
-            p.failure("Password hash not found!")
+
+print("Password hash not found after {} attempts!".format(attempts))
